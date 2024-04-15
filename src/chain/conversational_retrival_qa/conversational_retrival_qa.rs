@@ -82,11 +82,13 @@ impl Chain for ConversationalRetriverChain {
         let input_variable = &input_variables
             .get(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-
-        let human_message = Message::new_human_message(input_variable);
+        let input = serde_json::to_string(input_variable)?;
+        let human_message = Message::new_human_message(&input);
         let history = {
             let memory = self.memory.lock().await;
-            memory.messages()
+            memory.messages().await.map_err(|_| {
+                ChainError::MemoryError("Failed to fetch messages from memory".to_string())
+            })?
         };
 
         let (question, token) = self.get_question(&history, &human_message.content).await?;
@@ -122,8 +124,14 @@ impl Chain for ConversationalRetriverChain {
 
         {
             let mut memory = self.memory.lock().await;
-            memory.add_message(human_message);
-            memory.add_message(Message::new_ai_message(&output.generation));
+            memory
+                .add_message(human_message)
+                .await
+                .map_err(|_| ChainError::MemoryError("Failed to add user_message".to_string()))?;
+            memory
+                .add_message(Message::new_ai_message(&output.generation))
+                .await
+                .map_err(|_| ChainError::MemoryError("Failed to add ai_message".to_string()))?;
         }
 
         let mut result = HashMap::new();
@@ -156,11 +164,13 @@ impl Chain for ConversationalRetriverChain {
         let input_variable = &input_variables
             .get(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-
-        let human_message = Message::new_human_message(input_variable);
+        let input = serde_json::to_string(input_variable)?;
+        let human_message = Message::new_human_message(&input);
         let history = {
             let memory = self.memory.lock().await;
-            memory.messages()
+            memory.messages().await.map_err(|_| {
+                ChainError::MemoryError("Failed to fetch messages from memory".to_string())
+            })?
         };
 
         let (question, _) = self.get_question(&history, &human_message.content).await?;
@@ -202,8 +212,10 @@ impl Chain for ConversationalRetriverChain {
             }
 
             let mut memory = memory.lock().await;
-            memory.add_message(human_message);
-            memory.add_message(Message::new_ai_message(&complete_ai_message.lock().await));
+            memory.add_message(human_message).await
+            .map_err(|_|ChainError::MemoryError("Failed to add human_message".to_string()))?;
+            memory.add_message(Message::new_ai_message(&complete_ai_message.lock().await)).await
+            .map_err(|_|ChainError::MemoryError("Failed to add ai_message".to_string()))?;
         };
 
         Ok(Box::pin(output_stream))

@@ -62,19 +62,30 @@ impl Chain for ConversationalChain {
         let input_variable = &input_variables
             .get(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-        let human_message = Message::new_human_message(input_variable);
+        let input = serde_json::to_string(input_variable)?;
+        let human_message = Message::new_human_message(&input);
 
         let history = {
             let memory = self.memory.lock().await;
-            memory.to_string()
+            memory.to_string().await.map_err(|_| {
+                ChainError::MemoryError(
+                    "Failed to build string representation for memory".to_string(),
+                )
+            })?
         };
         let mut input_variables = input_variables;
         input_variables.insert("history".to_string(), history.into());
         let result = self.llm.call(input_variables.clone()).await?;
 
         let mut memory = self.memory.lock().await;
-        memory.add_message(human_message);
-        memory.add_message(Message::new_ai_message(&result.generation));
+        memory
+            .add_message(human_message)
+            .await
+            .map_err(|_| ChainError::MemoryError("Failed to add user_message".to_string()))?;
+        memory
+            .add_message(Message::new_ai_message(&result.generation))
+            .await
+            .map_err(|_| ChainError::MemoryError("Failed to add ai_message".to_string()))?;
         Ok(result)
     }
 
@@ -86,11 +97,16 @@ impl Chain for ConversationalChain {
         let input_variable = &input_variables
             .get(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-        let human_message = Message::new_human_message(input_variable);
+        let input = serde_json::to_string(input_variable)?;
+        let human_message = Message::new_human_message(&input);
 
         let history = {
             let memory = self.memory.lock().await;
-            memory.to_string()
+            memory.to_string().await.map_err(|_| {
+                ChainError::MemoryError(
+                    "Failed to build string representation for memory".to_string(),
+                )
+            })?
         };
 
         let mut input_variables = input_variables;
@@ -120,8 +136,10 @@ impl Chain for ConversationalChain {
             }
 
             let mut memory = memory.lock().await;
-            memory.add_message(human_message);
-            memory.add_message(Message::new_ai_message(&complete_ai_message.lock().await));
+            memory.add_message(human_message).await
+            .map_err(|_|ChainError::MemoryError("Failed to add human_message".to_string()))?;
+            memory.add_message(Message::new_ai_message(&complete_ai_message.lock().await)).await
+            .map_err(|_|ChainError::MemoryError("Failed to add ai_message".to_string()))?;
         };
 
         Ok(Box::pin(output_stream))

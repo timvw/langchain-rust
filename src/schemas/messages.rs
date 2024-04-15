@@ -57,8 +57,7 @@ pub struct Message {
 }
 
 impl Message {
-    // Function to create a new Human message with a generic type that implements Display
-    pub fn new_human_message<T: std::fmt::Display>(content: T) -> Self {
+    pub fn new_human_message(content: &str) -> Self {
         Message {
             content: content.to_string(),
             message_type: MessageType::HumanMessage,
@@ -67,8 +66,7 @@ impl Message {
         }
     }
 
-    // Function to create a new System message with a generic type that implements Display
-    pub fn new_system_message<T: std::fmt::Display>(content: T) -> Self {
+    pub fn new_system_message(content: &str) -> Self {
         Message {
             content: content.to_string(),
             message_type: MessageType::SystemMessage,
@@ -78,7 +76,7 @@ impl Message {
     }
 
     // Function to create a new AI message with a generic type that implements Display
-    pub fn new_ai_message<T: std::fmt::Display>(content: T) -> Self {
+    pub fn new_ai_message(content: &str) -> Self {
         Message {
             content: content.to_string(),
             message_type: MessageType::AIMessage,

@@ -1,30 +1,40 @@
 use super::messages::Message;
+use async_trait::async_trait;
+use std::error::Error;
 
+#[async_trait]
 pub trait BaseMemory: Send + Sync {
-    fn messages(&self) -> Vec<Message>;
+    async fn messages(&self) -> Result<Vec<Message>, Box<dyn Error>>;
 
     // Use a trait object for Display instead of a generic type
-    fn add_user_message(&mut self, message: &dyn std::fmt::Display) {
+    async fn add_user_message(&mut self, message: &str) -> Result<(), Box<dyn Error>> {
         // Convert the Display trait object to a String and pass it to the constructor
-        self.add_message(Message::new_human_message(&message.to_string()));
+        let result = self
+            .add_message(Message::new_human_message(message))
+            .await?;
+        Ok(result)
     }
 
     // Use a trait object for Display instead of a generic type
-    fn add_ai_message(&mut self, message: &dyn std::fmt::Display) {
+    async fn add_ai_message(&mut self, message: &str) -> Result<(), Box<dyn Error>> {
         // Convert the Display trait object to a String and pass it to the constructor
-        self.add_message(Message::new_ai_message(&message.to_string()));
+        let result = self.add_message(Message::new_ai_message(message)).await?;
+        Ok(result)
     }
 
-    fn add_message(&mut self, message: Message);
+    async fn add_message(&mut self, message: Message) -> Result<(), Box<dyn Error>>;
 
-    fn clear(&mut self);
+    async fn clear(&mut self) -> Result<(), Box<dyn Error>>;
 
-    fn to_string(&self) -> String {
-        self.messages()
+    async fn to_string(&self) -> Result<String, Box<dyn Error>> {
+        let result = self
+            .messages()
+            .await?
             .iter()
             .map(|msg| format!("{}: {}", msg.message_type.to_string(), msg.content))
             .collect::<Vec<String>>()
-            .join("\n")
+            .join("\n");
+        Ok(result)
     }
 }
 

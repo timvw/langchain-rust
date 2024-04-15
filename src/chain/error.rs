@@ -39,4 +39,7 @@ pub enum ChainError {
 
     #[error("Agent error: {0}")]
     AgentError(String),
+
+    #[error("Memory error: {0}")]
+    MemoryError(String),
 }

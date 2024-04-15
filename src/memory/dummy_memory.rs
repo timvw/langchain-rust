@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+use std::error::Error;
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
@@ -24,10 +26,17 @@ impl Into<Arc<Mutex<dyn BaseMemory>>> for DummyMemroy {
     }
 }
 
+#[async_trait]
 impl BaseMemory for DummyMemroy {
-    fn messages(&self) -> Vec<Message> {
-        vec![]
+    async fn messages(&self) -> Result<Vec<Message>, Box<dyn Error>> {
+        Ok(vec![])
     }
-    fn add_message(&mut self, _message: Message) {}
-    fn clear(&mut self) {}
+
+    async fn add_message(&mut self, _: Message) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    async fn clear(&mut self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }

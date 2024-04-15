@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+use std::error::Error;
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
@@ -28,14 +30,19 @@ impl Into<Arc<Mutex<dyn BaseMemory>>> for SimpleMemory {
     }
 }
 
+#[async_trait]
 impl BaseMemory for SimpleMemory {
-    fn messages(&self) -> Vec<Message> {
-        self.messages.clone()
+    async fn messages(&self) -> Result<Vec<Message>, Box<dyn Error>> {
+        Ok(self.messages.clone())
     }
-    fn add_message(&mut self, message: Message) {
+
+    async fn add_message(&mut self, message: Message) -> Result<(), Box<dyn Error>> {
         self.messages.push(message);
+        Ok(())
     }
-    fn clear(&mut self) {
+
+    async fn clear(&mut self) -> Result<(), Box<dyn Error>> {
         self.messages.clear();
+        Ok(())
     }
 }

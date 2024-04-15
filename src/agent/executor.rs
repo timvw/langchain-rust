@@ -78,12 +78,17 @@ where
         log::debug!("steps: {:?}", steps);
         if let Some(memory) = &self.memory {
             let memory = memory.lock().await;
-            input_variables.insert("chat_history".to_string(), json!(memory.messages()));
+            let messages = memory
+                .messages()
+                .await
+                .map_err(|_| ChainError::MemoryError("Failed to fetch messages".to_string()))?;
+            input_variables.insert("chat_history".to_string(), json!(messages));
         } else {
-            input_variables.insert(
-                "chat_history".to_string(),
-                json!(SimpleMemory::new().messages()),
-            );
+            let messages = SimpleMemory::new()
+                .messages()
+                .await
+                .map_err(|_| ChainError::MemoryError("Failed to fetch messages".to_string()))?;
+            input_variables.insert("chat_history".to_string(), json!(messages));
         }
 
         loop {
@@ -133,8 +138,13 @@ where
                 AgentEvent::Finish(finish) => {
                     if let Some(memory) = &self.memory {
                         let mut memory = memory.lock().await;
-                        memory.add_user_message(&input_variables["input"]);
-                        memory.add_ai_message(&finish.output);
+                        let input = serde_json::to_string(&input_variables["input"])?;
+                        memory.add_user_message(&input).await.map_err(|_| {
+                            ChainError::MemoryError("Failed to add user_message".to_string())
+                        })?;
+                        memory.add_ai_message(&finish.output).await.map_err(|_| {
+                            ChainError::MemoryError("Failed to add ai message".to_string())
+                        })?;
                     }
                     return Ok(GenerateResult {
                         generation: finish.output,
