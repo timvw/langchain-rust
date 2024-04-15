@@ -86,9 +86,7 @@ impl Chain for ConversationalRetriverChain {
         let human_message = Message::new_human_message(&input);
         let history = {
             let memory = self.memory.lock().await;
-            memory.messages().await.map_err(|_| {
-                ChainError::MemoryError("Failed to fetch messages from memory".to_string())
-            })?
+            memory.messages().await?
         };
 
         let (question, token) = self.get_question(&history, &human_message.content).await?;
@@ -124,14 +122,10 @@ impl Chain for ConversationalRetriverChain {
 
         {
             let mut memory = self.memory.lock().await;
-            memory
-                .add_message(human_message)
-                .await
-                .map_err(|_| ChainError::MemoryError("Failed to add user_message".to_string()))?;
+            memory.add_message(human_message).await?;
             memory
                 .add_message(Message::new_ai_message(&output.generation))
-                .await
-                .map_err(|_| ChainError::MemoryError("Failed to add ai_message".to_string()))?;
+                .await?;
         }
 
         let mut result = HashMap::new();
@@ -168,9 +162,7 @@ impl Chain for ConversationalRetriverChain {
         let human_message = Message::new_human_message(&input);
         let history = {
             let memory = self.memory.lock().await;
-            memory.messages().await.map_err(|_| {
-                ChainError::MemoryError("Failed to fetch messages from memory".to_string())
-            })?
+            memory.messages().await?
         };
 
         let (question, _) = self.get_question(&history, &human_message.content).await?;
@@ -212,10 +204,8 @@ impl Chain for ConversationalRetriverChain {
             }
 
             let mut memory = memory.lock().await;
-            memory.add_message(human_message).await
-            .map_err(|_|ChainError::MemoryError("Failed to add human_message".to_string()))?;
-            memory.add_message(Message::new_ai_message(&complete_ai_message.lock().await)).await
-            .map_err(|_|ChainError::MemoryError("Failed to add ai_message".to_string()))?;
+            memory.add_message(human_message).await?;
+            memory.add_message(Message::new_ai_message(&complete_ai_message.lock().await)).await?;
         };
 
         Ok(Box::pin(output_stream))

@@ -1,10 +1,9 @@
 use async_trait::async_trait;
-use std::error::Error;
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use crate::schemas::{memory::BaseMemory, messages::Message};
+use crate::schemas::{memory::BaseMemory, messages::Message, MemoryError};
 
 pub struct SimpleMemory {
     messages: Vec<Message>,
@@ -32,16 +31,16 @@ impl Into<Arc<Mutex<dyn BaseMemory>>> for SimpleMemory {
 
 #[async_trait]
 impl BaseMemory for SimpleMemory {
-    async fn messages(&self) -> Result<Vec<Message>, Box<dyn Error>> {
+    async fn messages(&self) -> Result<Vec<Message>, MemoryError> {
         Ok(self.messages.clone())
     }
 
-    async fn add_message(&mut self, message: Message) -> Result<(), Box<dyn Error>> {
+    async fn add_message(&mut self, message: Message) -> Result<(), MemoryError> {
         self.messages.push(message);
         Ok(())
     }
 
-    async fn clear(&mut self) -> Result<(), Box<dyn Error>> {
+    async fn clear(&mut self) -> Result<(), MemoryError> {
         self.messages.clear();
         Ok(())
     }

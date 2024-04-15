@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use crate::schemas::MemoryError;
 use crate::{language_models::LLMError, output_parsers::OutputParserError, prompt::PromptError};
 
 #[derive(Error, Debug)]
@@ -41,5 +42,5 @@ pub enum ChainError {
     AgentError(String),
 
     #[error("Memory error: {0}")]
-    MemoryError(String),
+    MemoryError(#[from] MemoryError),
 }
